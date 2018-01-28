@@ -1,0 +1,81 @@
+---
+title: "Practical Machine Learning - Prediction Assignment"
+author: "Marco Letico"
+date: "28 January 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: <http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har> (see the section on the Weight Lifting Exercise Dataset).
+
+The goal of the project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set.
+
+Below there is a description of the "classe" column taken from the author's website ^[Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.]:
+
+*"Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E)."*
+
+Let's start with loading packages and relevant data. We have 2 subsets. With the first one we will proceed to train our model. The second one is the data set where we will apply our prediction.
+
+```{r, message=FALSE}
+library(caret)
+library(randomForest)
+
+originalData <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv',
+                         na.strings=c("NA","#DIV/0!",""))
+predictionData <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv',
+                           na.strings=c("NA","#DIV/0!",""))
+```
+
+## Data modelling and cleaning
+
+As first step, we proceed with the elimination of the first 5 columns (irrelevant to our prediction) and the columns containing no values:
+
+```{r}
+dataSubset <- originalData[, apply(originalData, 2, function (x) {all(!is.na(x))} )]
+dataSubset <- dataSubset[, -(1:5)]
+```
+
+For cross validation, we than split our training data set in:
+
+```{r}
+set.seed(1526)
+trainIndex <- createDataPartition(dataSubset$classe, p=.60, list=FALSE)
+training <- dataSubset[trainIndex,]
+testing <- dataSubset[-trainIndex,]
+```
+
+Since this is a classification problem, where our variable to predict is qualitative, and our prediction data contains just 20 observations, we need a model with a high rate of accuracy. For this reason we are going to use a random forest model. We then perform a prediction on the testing data and show a confusion matrix.
+
+```{r}
+RM_Model <- randomForest(classe ~ ., data = training)
+prediction <- predict(RM_Model, testing)
+confusionMatrix(prediction, testing$classe)
+```
+
+Our model has a high pecentage of accuracy 99.66%. This rate of accuracy is enough to predict our classe value within our predictionData. We accept the model and we decide to do not proceed with our models.
+
+## Results and conclusions
+
+We noticed an error generate by the function <predict> when we tried to apply our model to our prediction data, this because of some discrepancy between classes.
+
+In order to proceed, we first remove the column we did not consider in our training and then we applied the following workaround:
+
+```{r}
+predictionData <- predictionData[, names(dataSubset[, -which(names(dataSubset) == "classe")])]
+myClasses <- head(training,1)
+myClasses <- myClasses[, -which(names(dataSubset) == "classe")] 
+predictionData <- rbind(myClasses, predictionData)
+predictionData <- predictionData[-1,]
+```
+
+We are ready to perform our prediction:
+
+```{r}
+finalPrediction <- predict(RM_Model, predictionData)
+finalPrediction
+```
