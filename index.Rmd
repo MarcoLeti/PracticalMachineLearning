@@ -57,7 +57,7 @@ prediction <- predict(RM_Model, testing)
 confusionMatrix(prediction, testing$classe)
 ```
 
-Our model has a high pecentage of accuracy 99.66%. This rate of accuracy is enough to predict our classe value within our predictionData. We accept the model and we decide to do not proceed with our models.
+Our model has a high pecentage of accuracy 99.66%, so the **out-of-sample error** is 0,34%.. This rate of accuracy is enough to predict our classe value within our predictionData. We accept the model and we decide to do not proceed with our models.
 
 ## Results and conclusions
 
